@@ -1,0 +1,22 @@
+syntax = "proto3";
+package message;
+
+//import "google/protobuf/duration.proto";
+//export PATH="$PATH:$(go env GOPATH)/bin"
+
+service SimpleServices {
+    rpc GetDeviceInterfaces(RequestR) returns (ResponseR); 
+    rpc GetStreaming(RequestR) returns (ResponseR);  
+}
+
+message RequestR {
+    string name = 1;
+}
+
+message ResponseR {
+    string name = 1;
+}
+
+message ResponseNames {
+    repeated string name = 1;
+}
