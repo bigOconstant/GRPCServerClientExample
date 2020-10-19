@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	pb "simple/api"
@@ -32,7 +33,7 @@ func main() {
 		name = os.Args[1]
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	r, err := c.GetDeviceInterfaces(ctx, &pb.RequestR{Name: name})
@@ -40,4 +41,19 @@ func main() {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r.GetName())
+
+	stream, err := c.GetStreaming(ctx, &pb.RequestR{Name: name})
+	if err != nil {
+		log.Fatalf("%v.ListFeatures(_) = _, %v", c, err)
+	}
+	for {
+		name, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%v.ListFeatures(_) = _, %v", c, err)
+		}
+		log.Println(name)
+	}
 }

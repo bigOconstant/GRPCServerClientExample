@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SimpleServicesClient interface {
 	GetDeviceInterfaces(ctx context.Context, in *RequestR, opts ...grpc.CallOption) (*ResponseR, error)
+	GetStreaming(ctx context.Context, in *RequestR, opts ...grpc.CallOption) (SimpleServices_GetStreamingClient, error)
 }
 
 type simpleServicesClient struct {
@@ -37,11 +38,44 @@ func (c *simpleServicesClient) GetDeviceInterfaces(ctx context.Context, in *Requ
 	return out, nil
 }
 
+func (c *simpleServicesClient) GetStreaming(ctx context.Context, in *RequestR, opts ...grpc.CallOption) (SimpleServices_GetStreamingClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_SimpleServices_serviceDesc.Streams[0], "/message.SimpleServices/GetStreaming", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &simpleServicesGetStreamingClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type SimpleServices_GetStreamingClient interface {
+	Recv() (*ResponseNames, error)
+	grpc.ClientStream
+}
+
+type simpleServicesGetStreamingClient struct {
+	grpc.ClientStream
+}
+
+func (x *simpleServicesGetStreamingClient) Recv() (*ResponseNames, error) {
+	m := new(ResponseNames)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // SimpleServicesServer is the server API for SimpleServices service.
 // All implementations must embed UnimplementedSimpleServicesServer
 // for forward compatibility
 type SimpleServicesServer interface {
 	GetDeviceInterfaces(context.Context, *RequestR) (*ResponseR, error)
+	GetStreaming(*RequestR, SimpleServices_GetStreamingServer) error
 	mustEmbedUnimplementedSimpleServicesServer()
 }
 
@@ -51,6 +85,9 @@ type UnimplementedSimpleServicesServer struct {
 
 func (UnimplementedSimpleServicesServer) GetDeviceInterfaces(context.Context, *RequestR) (*ResponseR, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeviceInterfaces not implemented")
+}
+func (UnimplementedSimpleServicesServer) GetStreaming(*RequestR, SimpleServices_GetStreamingServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetStreaming not implemented")
 }
 func (UnimplementedSimpleServicesServer) mustEmbedUnimplementedSimpleServicesServer() {}
 
@@ -83,6 +120,27 @@ func _SimpleServices_GetDeviceInterfaces_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SimpleServices_GetStreaming_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RequestR)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SimpleServicesServer).GetStreaming(m, &simpleServicesGetStreamingServer{stream})
+}
+
+type SimpleServices_GetStreamingServer interface {
+	Send(*ResponseNames) error
+	grpc.ServerStream
+}
+
+type simpleServicesGetStreamingServer struct {
+	grpc.ServerStream
+}
+
+func (x *simpleServicesGetStreamingServer) Send(m *ResponseNames) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _SimpleServices_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "message.SimpleServices",
 	HandlerType: (*SimpleServicesServer)(nil),
@@ -92,6 +150,12 @@ var _SimpleServices_serviceDesc = grpc.ServiceDesc{
 			Handler:    _SimpleServices_GetDeviceInterfaces_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetStreaming",
+			Handler:       _SimpleServices_GetStreaming_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "main.proto",
 }

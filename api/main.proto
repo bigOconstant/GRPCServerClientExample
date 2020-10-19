@@ -6,7 +6,7 @@ package message;
 
 service SimpleServices {
     rpc GetDeviceInterfaces(RequestR) returns (ResponseR); 
-    rpc GetStreaming(RequestR) returns (ResponseR);  
+    rpc GetStreaming(RequestR) returns (stream ResponseNames);  
 }
 
 message RequestR {
@@ -18,5 +18,5 @@ message ResponseR {
 }
 
 message ResponseNames {
-    repeated string name = 1;
+     string name = 1;
 }
